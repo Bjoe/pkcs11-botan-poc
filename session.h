@@ -1,8 +1,6 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "publickey.h"
-
 #include <botan-2/botan/p11.h>
 #include <botan-2/botan/p11_module.h>
 #include <botan-2/botan/p11_session.h>
