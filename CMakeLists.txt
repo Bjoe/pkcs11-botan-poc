@@ -17,5 +17,11 @@ hunter_add_package(Boost COMPONENTS program_options filesystem system)
 find_package(botan-2 CONFIG REQUIRED)
 find_package(Boost REQUIRED program_options filesystem system)
 
-add_executable(pbp main.cpp)
+add_executable(pbp
+  main.cpp
+  publickey.cpp
+  session.cpp
+  deencryptor.cpp
+  signverifier.cpp
+)
 target_link_libraries(pbp PUBLIC Boost::program_options Boost::filesystem Boost::system PkgConfig::botan-2 dl)
