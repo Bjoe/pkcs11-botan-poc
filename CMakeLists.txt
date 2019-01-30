@@ -19,7 +19,6 @@ find_package(Boost REQUIRED program_options filesystem system)
 
 add_executable(pbp
   main.cpp
-  publickey.cpp
   session.cpp
   deencryptor.cpp
   signverifier.cpp

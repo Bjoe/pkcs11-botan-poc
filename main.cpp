@@ -21,6 +21,9 @@
 #include <optional>
 //#include <filesystem> <-- should be in C++17
 
+#include "deencryptor.h"
+#include "signverifier.h"
+
 class ProgramOptions
 {
 public:
@@ -358,20 +361,20 @@ int main(int argc, const char* const argv[])
     {
         boost::filesystem::path mp = programOptions->getModule();
         std::cout << "Load module from " << mp.string() << '\n';
-        Botan::PKCS11::Module module(mp.string());
-        module.reload();
-
-        // only slots with connected token
-        std::vector<Botan::PKCS11::SlotId> slots = Botan::PKCS11::Slot::get_available_slots( module, true );
-
-        if(slots.empty())
-        {
-            std::cout << "No slots" << '\n';
-            return 1;
-        }
 
         if(programOptions->isListAllSlotsObject())
         {
+            Botan::PKCS11::Module module(mp.string());
+            module.reload();
+
+            // only slots with connected token
+            std::vector<Botan::PKCS11::SlotId> slots = Botan::PKCS11::Slot::get_available_slots( module, true );
+
+            if(slots.empty())
+            {
+                std::cout << "No slots" << '\n';
+                return 1;
+            }
             Botan::PKCS11::Info info = module.get_info();
             std::cout << "Library version: " << std::to_string(info.libraryVersion.major) << "." << std::to_string(info.libraryVersion.minor) << '\n';
 
@@ -536,7 +539,6 @@ int main(int argc, const char* const argv[])
         if(programOptions->isEncrypt() || programOptions->isDecrypt() ||
                 programOptions->isSign() || programOptions->isVerify())
         {
-            Botan::AutoSeeded_RNG rng;
 
             boost::optional<boost::filesystem::path> contentFile = programOptions->getContent();
             if(contentFile)
@@ -544,305 +546,55 @@ int main(int argc, const char* const argv[])
                 if(boost::filesystem::exists(*contentFile))
                 {
                     try {
-                        if(programOptions->isEncrypt())
+                        if(programOptions->isEncrypt() || programOptions->isDecrypt())
                         {
-                            Botan::PKCS11::SlotId id = 0;
-                            Botan::PKCS11::Slot slot(module, id);
-                            Botan::PKCS11::Flags flags =
-                                    Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
-
-                            Botan::PKCS11::Session session( slot, flags, nullptr, nullptr );
-
-                            Botan::PKCS11::secure_string pin = programOptions->getPassword();
-                            session.login( Botan::PKCS11::UserType::User, pin );
-
-                            // search for an public key
-                            Botan::PKCS11::PublicKeyProperties publicKeyProperties(Botan::PKCS11::KeyType::Rsa);
-                            publicKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, "Encryption key");
-                            //publicKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 2);
-                            std::vector<Botan::PKCS11::Attribute> pubAttributes = publicKeyProperties.attributes();
-
-                            std::vector<Botan::PKCS11::PKCS11_RSA_PublicKey> foundPublicKey =
-                                    Botan::PKCS11::Object::search<Botan::PKCS11::PKCS11_RSA_PublicKey>(session, pubAttributes);
-
-                            if(foundPublicKey.empty())
+                            boost::optional<boost::filesystem::path> output = programOptions->getOutput();
+                            if(!output)
                             {
-                                std::cerr << "Cannot find encryption key" << '\n';
+                                std::cerr << "Required --output parameter is missing\n";
                                 return -1;
                             }
 
-                            if(foundPublicKey.size() == 1)
+                            pkcs11::DeEncryptor deencryptor(mp, programOptions->getPassword());
+
+                            if(programOptions->isEncrypt())
                             {
-                                Botan::PKCS11::PKCS11_RSA_PublicKey pubKey = foundPublicKey.at(0);
-                                Botan::PK_Encryptor_EME encryptor(pubKey, rng, "EME-PKCS1-v1_5"); // FIXME ->  throws an exception: PKCS11_ReturnError: PKCS11 error 84 CKR_FUNCTION_NOT_SUPPORTED
+                                deencryptor.encrypt(contentFile.get(), output.get());
+                            }
 
-                                boost::filesystem::ifstream ifstream{*contentFile};
-                                std::string s;
-                                ifstream >> s;
-                                Botan::secure_vector<uint8_t> plaintext{s.begin(), s.end()};
+                            if(programOptions->isDecrypt())
+                            {
+                                deencryptor.decrypt(contentFile.get(), output.get());
+                            }
+                        }
 
-                                std::vector<uint8_t> ciphertext = encryptor.encrypt(plaintext, rng );
+                        if(programOptions->isSign() || programOptions->isVerify())
+                        {
+                            pkcs11::SignVerifier verifier(mp, programOptions->getPassword());
 
-                                Botan::Pipe pipe(new Botan::Base64_Encoder);
-                                pipe.process_msg(ciphertext);
-
+                            if(programOptions->isSign())
+                            {
                                 boost::optional<boost::filesystem::path> output = programOptions->getOutput();
-                                if(output)
-                                {
-                                    boost::filesystem::ofstream ofstream{*output};
-                                    ofstream << pipe.read_all_as_string();
-                                }
-                                else
+                                if(!output)
                                 {
                                     std::cerr << "Required --output parameter is missing\n";
                                     return -1;
                                 }
-                            }
-                            else
-                            {
-                                std::cerr << "Found more then one encryption key" << '\n';
-                                return -1;
-                            }
-                        }
 
-                        if(programOptions->isEncrypt())
-                        {
-                            Botan::PKCS11::SlotId id = 0;
-                            Botan::PKCS11::Slot slot(module, id);
-                            Botan::PKCS11::Flags flags =
-                                    Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
-
-                            Botan::PKCS11::Session session( slot, flags, nullptr, nullptr );
-
-                            Botan::PKCS11::secure_string pin = programOptions->getPassword();
-                            session.login( Botan::PKCS11::UserType::User, pin );
-
-                            Botan::PKCS11::PrivateKeyProperties privateKeyProperties(Botan::PKCS11::KeyType::Rsa);
-                            privateKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, "Encryption key");
-                            //privateKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 2);
-                            std::vector<Botan::PKCS11::Attribute> attributes = privateKeyProperties.attributes();
-                            std::vector<Botan::PKCS11::PKCS11_RSA_PrivateKey> foundPrivateKey =
-                                    Botan::PKCS11::Object::search<Botan::PKCS11::PKCS11_RSA_PrivateKey>(session, attributes);
-                            if(foundPrivateKey.empty())
-                            {
-                                std::cerr << "Cannot find encryption key" << '\n';
-                                return -1;
+                                verifier.sign(contentFile.get(), output.get());
                             }
 
-                            if(foundPrivateKey.size() == 1)
+                            if(programOptions->isVerify())
                             {
-                                Botan::PKCS11::PKCS11_RSA_PrivateKey privKey = foundPrivateKey.at(0);
-                                Botan::PK_Encryptor_EME encryptor(privKey, rng, "EME-PKCS1-v1_5");
-
-                                boost::filesystem::ifstream ifstream{*contentFile};
-                                std::string s;
-                                ifstream >> s;
-                                Botan::secure_vector<uint8_t> plaintext{s.begin(), s.end()};
-
-                                std::vector<uint8_t> ciphertext = encryptor.encrypt(plaintext, rng );
-
-                                Botan::Pipe pipe(new Botan::Base64_Encoder);
-                                pipe.process_msg(ciphertext);
-
-                                boost::optional<boost::filesystem::path> output = programOptions->getOutput();
-                                if(output)
-                                {
-                                    boost::filesystem::ofstream ofstream{*output};
-                                    ofstream << pipe.read_all_as_string();
-                                }
-                                else
-                                {
-                                    std::cerr << "Required --output parameter is missing\n";
-                                    return -1;
-                                }
-                            }
-                            else
-                            {
-                                std::cerr << "Found more then one encryption key" << '\n';
-                                return -1;
-                            }
-                        }
-
-                        if(programOptions->isDecrypt())
-                        {
-                            Botan::PKCS11::SlotId id = 0;
-                            Botan::PKCS11::Slot slot(module, id);
-                            Botan::PKCS11::Flags flags =
-                                    Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
-
-                            Botan::PKCS11::Session session( slot, flags, nullptr, nullptr );
-
-                            Botan::PKCS11::secure_string pin = programOptions->getPassword();
-                            session.login( Botan::PKCS11::UserType::User, pin );
-
-                            Botan::PKCS11::PrivateKeyProperties privateKeyProperties(Botan::PKCS11::KeyType::Rsa);
-                            privateKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, "Encryption key");
-                            //privateKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 2);
-                            std::vector<Botan::PKCS11::Attribute> attributes = privateKeyProperties.attributes();
-                            std::vector<Botan::PKCS11::PKCS11_RSA_PrivateKey> foundPrivateKey =
-                                    Botan::PKCS11::Object::search<Botan::PKCS11::PKCS11_RSA_PrivateKey>(session, attributes);
-                            if(foundPrivateKey.empty())
-                            {
-                                std::cerr << "Cannot find decryption key" << '\n';
-                                return -1;
-                            }
-
-                            if(foundPrivateKey.size() == 1)
-                            {
-                                Botan::PKCS11::PKCS11_RSA_PrivateKey privKey = foundPrivateKey.at(0);
-                                Botan::PK_Decryptor_EME decryptor( privKey, rng, "EME-PKCS1-v1_5");
-
-                                boost::filesystem::ifstream ifstream{*contentFile};
-                                std::string s;
-                                ifstream >> s;
-                                std::vector<uint8_t> ciphertext{s.begin(), s.end()};
-                                auto decryptText = decryptor.decrypt(ciphertext);
-
-                                Botan::Pipe pipeOut;
-                                pipeOut.process_msg(decryptText);
-
-                                boost::optional<boost::filesystem::path> output = programOptions->getOutput();
-                                if(output)
-                                {
-                                    boost::filesystem::ofstream ofstream{*output};
-                                    ofstream << pipeOut.read_all_as_string();
-                                }
-                                else
-                                {
-                                    std::cerr << "Required --output parameter is missing\n";
-                                    return -1;
-                                }
-                            }
-                            else
-                            {
-                                std::cerr << "Found more then one decryption key" << '\n';
-                                return -1;
-                            }
-                        }
-
-                        if(programOptions->isSign())
-                        {
-                            Botan::PKCS11::SlotId id = 1;
-                            Botan::PKCS11::Slot slot(module, id);
-                            Botan::PKCS11::Flags flags =
-                                    Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
-
-                            Botan::PKCS11::Session session( slot, flags, nullptr, nullptr );
-
-                            Botan::PKCS11::secure_string pin = programOptions->getPassword();
-                            session.login( Botan::PKCS11::UserType::User, pin );
-
-                            Botan::PKCS11::PrivateKeyProperties privateKeyProperties(Botan::PKCS11::KeyType::Rsa);
-                            privateKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, "Signature key");
-                            privateKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 1);
-                            std::vector<Botan::PKCS11::Attribute> attributes = privateKeyProperties.attributes();
-                            std::vector<Botan::PKCS11::PKCS11_RSA_PrivateKey> foundPrivateKey =
-                                    Botan::PKCS11::Object::search<Botan::PKCS11::PKCS11_RSA_PrivateKey>(session, attributes);
-                            if(foundPrivateKey.empty())
-                            {
-                                std::cerr << "Cannot find signature key" << '\n';
-                                return -1;
-                            }
-
-                            if(foundPrivateKey.size() == 1)
-                            {
-                                Botan::PKCS11::PKCS11_RSA_PrivateKey privKey = foundPrivateKey.at(0);
-
-                                Botan::PK_Signer signer(privKey, rng, "Raw", Botan::IEEE_1363);
-
-                                boost::filesystem::ifstream ifstream{*contentFile};
-                                std::string s;
-                                ifstream >> s;
-                                Botan::secure_vector<uint8_t> plaintext{s.begin(), s.end()};
-
-                                std::vector<uint8_t> signature = signer.sign_message(plaintext, rng);
-
-                                Botan::Pipe pipeOut;
-                                pipeOut.process_msg(signature);
-
-                                boost::optional<boost::filesystem::path> output = programOptions->getOutput();
-                                if(output)
-                                {
-                                    boost::filesystem::ofstream ofstream{*output};
-                                    ofstream << pipeOut.read_all_as_string();
-                                }
-                                else
-                                {
-                                    std::cerr << "Required --output parameter is missing\n";
-                                    return -1;
-                                }
-                            }
-                            else
-                            {
-                                std::cerr << "Found more then one signature key" << '\n';
-                                return -1;
-                            }
-                        }
-
-                        if(programOptions->isVerify())
-                        {
-                            Botan::PKCS11::SlotId id = 1;
-                            Botan::PKCS11::Slot slot(module, id);
-                            Botan::PKCS11::Flags flags =
-                                    Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
-
-                            Botan::PKCS11::Session session( slot, flags, nullptr, nullptr );
-
-                            Botan::PKCS11::secure_string pin = programOptions->getPassword();
-                            session.login( Botan::PKCS11::UserType::User, pin );
-
-                            // search for an public key
-                            Botan::PKCS11::PublicKeyProperties publicKeyProperties(Botan::PKCS11::KeyType::Rsa);
-                            publicKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, "Signature key");
-                            publicKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 1);
-                            std::vector<Botan::PKCS11::Attribute> pubAttributes = publicKeyProperties.attributes();
-
-                            std::vector<Botan::PKCS11::PKCS11_RSA_PublicKey> foundPublicKey =
-                                    Botan::PKCS11::Object::search<Botan::PKCS11::PKCS11_RSA_PublicKey>(session, pubAttributes);
-
-                            if(foundPublicKey.empty())
-                            {
-                                std::cerr << "Cannot find signature key" << '\n';
-                                return -1;
-                            }
-
-                            if(foundPublicKey.size() == 1)
-                            {
-                                Botan::PKCS11::PKCS11_RSA_PublicKey pubKey = foundPublicKey.at(0);
-
-                                boost::filesystem::ifstream ifstream{*contentFile};
-                                std::string t;
-                                ifstream >> t;
-                                Botan::secure_vector<uint8_t> plaintext{t.begin(), t.end()};
-
                                 boost::optional<boost::filesystem::path> signatureFile = programOptions->getSignatureFile();
                                 if(!signatureFile)
                                 {
                                     std::cerr << "Required --signature parameter is missing\n";
                                     return -1;
                                 }
-                                boost::filesystem::ifstream ifstreamSig{*signatureFile};
-                                std::string s;
-                                ifstreamSig >> s;
-                                Botan::secure_vector<uint8_t> signature{s.begin(), s.end()};
 
-                                Botan::PK_Verifier verifier(pubKey, "Raw", Botan::IEEE_1363);
-                                bool rsa_ok = verifier.verify_message(plaintext, signature);
-                                if(rsa_ok)
-                                {
-                                    std::cout << "Signature is ok\n";
-                                }
-                                else
-                                {
-                                    std::cout << "Signature is wrong\n";
-                                }
+                                verifier.verify(contentFile.get(), signatureFile.get());
                             }
-                            else
-                            {
-                                std::cerr << "Found more then one encryption key" << '\n';
-                                return -1;
-                            }
-
                         }
                     } catch(Botan::PKCS11::PKCS11_ReturnError &e)
                     {
