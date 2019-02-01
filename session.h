@@ -51,10 +51,6 @@ public:
       }
   };
 
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> getPublicKey();
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> getPrivateKey();
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> getSignatureKey();
-
   Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<Botan::PKCS11::Session> session);
 
 private:
