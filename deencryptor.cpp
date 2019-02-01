@@ -16,7 +16,7 @@ DeEncryptor::DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::se
 
 void DeEncryptor::encrypt(boost::filesystem::path input, boost::filesystem::path output)
 {
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> pubKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PublicKey>(KeyType::ENCRYPTION);
+  boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> pubKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PublicKey>(KeyType::PUBLIC, KeyPurpose::ENCRYPTION);
   if(pubKey)
   {
     Botan::PK_Encryptor_EME encryptor(pubKey.get(), rng_, "EME-PKCS1-v1_5");
@@ -38,7 +38,7 @@ void DeEncryptor::encrypt(boost::filesystem::path input, boost::filesystem::path
 
 void DeEncryptor::decrypt(boost::filesystem::path input, boost::filesystem::path output)
 {
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> privKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PrivateKey>(KeyType::ENCRYPTION);
+  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> privKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PrivateKey>(KeyType::PRIVATE, KeyPurpose::ENCRYPTION);
   if(privKey)
   {
     Botan::PK_Decryptor_EME decryptor( privKey.get(), rng_, "EME-PKCS1-v1_5");

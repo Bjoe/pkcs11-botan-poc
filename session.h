@@ -18,6 +18,12 @@ namespace pkcs11 {
 
 enum class KeyType
 {
+    PUBLIC,
+    PRIVATE,
+};
+
+enum class KeyPurpose
+{
     ENCRYPTION,
     SIGNATURE,
 };
@@ -31,10 +37,10 @@ public:
   Session& operator=(const Session& other) = delete;
 
   template<typename T>
-  boost::optional<T> getKey(KeyType type)
+  boost::optional<T> getKey(KeyType type, KeyPurpose purpose)
   {
       std::vector<T> foundPublicKey =
-              Botan::PKCS11::Object::search<T>(*session_, getAttributes(type));
+              Botan::PKCS11::Object::search<T>(*session_, getAttributes(type, purpose));
 
       if(foundPublicKey.empty())
       {
@@ -54,7 +60,7 @@ public:
   Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<Botan::PKCS11::Session> session);
 
 private:
-  std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type);
+  std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type, KeyPurpose purpose);
 
   std::unique_ptr<Botan::PKCS11::Module> module_;
   std::unique_ptr<Botan::PKCS11::Session> session_;

@@ -37,23 +37,38 @@ Session::Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<
 
 }
 
-std::vector<Botan::PKCS11::Attribute> Session::getAttributes(KeyType type)
+namespace
 {
-    std::string keyType = "undefined";
-    switch(type)
+std::vector<Botan::PKCS11::Attribute> getPurpsoeAttribute(KeyPurpose purpose, Botan::PKCS11::KeyProperties keyProperties)
+{
+    std::string keyPurpose = "undefined";
+    switch(purpose)
     {
-    case(KeyType::SIGNATURE):
-        keyType = "Signature key";
+    case(KeyPurpose::SIGNATURE):
+        keyPurpose = "Signature key";
         break;
-    case(KeyType::ENCRYPTION):
-        keyType = "Encryption key";
+    case(KeyPurpose::ENCRYPTION):
+        keyPurpose = "Encryption key";
         break;
     }
     // search for an public key
-    Botan::PKCS11::PublicKeyProperties publicKeyProperties(Botan::PKCS11::KeyType::Rsa);
-    publicKeyProperties.add_string(Botan::PKCS11::AttributeType::Label, keyType);
+    keyProperties.add_string(Botan::PKCS11::AttributeType::Label, keyPurpose);
     //publicKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 2);
-    return publicKeyProperties.attributes();
+    return keyProperties.attributes();
+}
+
+}
+
+// TODO Refactor to template/constexpr
+std::vector<Botan::PKCS11::Attribute> Session::getAttributes(KeyType type, KeyPurpose purpose)
+{
+    switch(type)
+    {
+    case(KeyType::PUBLIC):
+        return getPurpsoeAttribute(purpose, Botan::PKCS11::PublicKeyProperties(Botan::PKCS11::KeyType::Rsa));
+    case(KeyType::PRIVATE):
+        return getPurpsoeAttribute(purpose, Botan::PKCS11::PrivateKeyProperties(Botan::PKCS11::KeyType::Rsa));
+    }
 }
 
 } // namespace pkcs11

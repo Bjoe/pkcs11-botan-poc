@@ -19,7 +19,7 @@ SignVerifier::SignVerifier(boost::filesystem::path pkcs11Module, Botan::PKCS11::
 
 void SignVerifier::sign(boost::filesystem::path input, boost::filesystem::path output)
 {
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> privKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PrivateKey>(KeyType::SIGNATURE);
+  boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> privKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PrivateKey>(KeyType::PRIVATE, KeyPurpose::SIGNATURE);
   if(privKey)
   {
     Botan::PK_Signer signer(privKey.get(), rng_, "Raw", Botan::IEEE_1363);
@@ -41,7 +41,7 @@ void SignVerifier::sign(boost::filesystem::path input, boost::filesystem::path o
 
 bool SignVerifier::verify(boost::filesystem::path input, boost::filesystem::path signatureFile)
 {
-  boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> pubKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PublicKey>(KeyType::SIGNATURE);
+  boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> pubKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PublicKey>(KeyType::PUBLIC, KeyPurpose::SIGNATURE);
   if(pubKey)
   {
     boost::filesystem::ifstream ifstream{input};
