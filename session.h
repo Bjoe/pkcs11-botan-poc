@@ -34,7 +34,7 @@ public:
   boost::optional<T> getKey(KeyType type)
   {
       std::vector<T> foundPublicKey =
-              Botan::PKCS11::Object::search<T>(session_, getAttributes(type));
+              Botan::PKCS11::Object::search<T>(*session_, getAttributes(type));
 
       if(foundPublicKey.empty())
       {
@@ -55,13 +55,13 @@ public:
   boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> getPrivateKey();
   boost::optional<Botan::PKCS11::PKCS11_RSA_PrivateKey> getSignatureKey();
 
-  Session(Botan::PKCS11::Module module, Botan::PKCS11::Session session);
+  Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<Botan::PKCS11::Session> session);
 
 private:
   std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type);
 
-  Botan::PKCS11::Module module_;
-  Botan::PKCS11::Session session_;
+  std::unique_ptr<Botan::PKCS11::Module> module_;
+  std::unique_ptr<Botan::PKCS11::Session> session_;
 };
 
 } // namespace pkcs11
