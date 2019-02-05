@@ -32,7 +32,7 @@ class Session
 {
 public:
   static std::unique_ptr<Session> create(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id);
-  Session(std::unique_ptr<Botan::PKCS11::Module> &&module, Botan::PKCS11::Slot slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password);
+  Session(Botan::PKCS11::Module module, Botan::PKCS11::Slot slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password);
 
   Session(const Session&) = delete;
   Session& operator=(const Session& other) = delete;
@@ -62,7 +62,8 @@ public:
 private:
   std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type, KeyPurpose purpose);
 
-  std::unique_ptr<Botan::PKCS11::Module> module_;
+  Botan::PKCS11::Module module_;
+  Botan::PKCS11::Slot slot_;
   Botan::PKCS11::Session session_;
 };
 
