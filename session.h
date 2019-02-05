@@ -32,6 +32,7 @@ class Session
 {
 public:
   static std::unique_ptr<Session> create(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id);
+  Session(std::unique_ptr<Botan::PKCS11::Module> &&module, Botan::PKCS11::Slot slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password);
 
   Session(const Session&) = delete;
   Session& operator=(const Session& other) = delete;
@@ -39,8 +40,9 @@ public:
   template<typename T>
   boost::optional<T> getKey(KeyType type, KeyPurpose purpose)
   {
+      std::vector<Botan::PKCS11::Attribute> attr = getAttributes(type, purpose);
       std::vector<T> foundPublicKey =
-              Botan::PKCS11::Object::search<T>(*session_, getAttributes(type, purpose));
+              Botan::PKCS11::Object::search<T>(session_, attr);
 
       if(foundPublicKey.empty())
       {
@@ -57,13 +59,11 @@ public:
       }
   };
 
-  Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<Botan::PKCS11::Session> session);
-
 private:
   std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type, KeyPurpose purpose);
 
   std::unique_ptr<Botan::PKCS11::Module> module_;
-  std::unique_ptr<Botan::PKCS11::Session> session_;
+  Botan::PKCS11::Session session_;
 };
 
 } // namespace pkcs11

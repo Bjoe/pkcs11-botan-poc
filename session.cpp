@@ -18,22 +18,22 @@ std::unique_ptr<Session> Session::create(boost::filesystem::path pkcs11Module, B
     std::vector<Botan::PKCS11::SlotId> slots = Botan::PKCS11::Slot::get_available_slots( *module, true );
     if(slots.empty())
     {
-        return {};
+        throw Botan::PKCS11::PKCS11_Error("No slots found.");
     }
 
     Botan::PKCS11::Flags flags =
             Botan::PKCS11::flags( Botan::PKCS11::Flag::SerialSession | Botan::PKCS11::Flag::RwSession );
 
     Botan::PKCS11::Slot slot(*module, id);
-    std::unique_ptr<Botan::PKCS11::Session> session = std::make_unique<Botan::PKCS11::Session>( slot, flags, nullptr, nullptr);
-    session->login( Botan::PKCS11::UserType::User, password);
 
-    return std::make_unique<Session>(std::move(module), std::move(session));
+    std::unique_ptr<Session> s = std::make_unique<Session>(std::move(module), slot, flags, password);
+    return s;
 }
 
-Session::Session(std::unique_ptr<Botan::PKCS11::Module> module, std::unique_ptr<Botan::PKCS11::Session> session) :
-    module_(std::move(module)), session_(std::move(session))
+Session::Session(std::unique_ptr<Botan::PKCS11::Module>&& module, Botan::PKCS11::Slot slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password) :
+    module_(std::move(module)), session_(slot, false)//flags, nullptr, nullptr)
 {
+    session_.login( Botan::PKCS11::UserType::User, password);
 
 }
 
