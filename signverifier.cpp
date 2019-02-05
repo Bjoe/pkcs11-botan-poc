@@ -1,11 +1,11 @@
 #include "signverifier.h"
 
-#include <botan-2/botan/pubkey.h>
-#include <botan-2/botan/p11_rsa.h>
-#include <botan-2/botan/pubkey.h>
-#include <botan-2/botan/secmem.h>
-#include <botan-2/botan/b64_filt.h>
-#include <botan-2/botan/pipe.h>
+#include <botan/pubkey.h>
+#include <botan/p11_rsa.h>
+#include <botan/pubkey.h>
+#include <botan/secmem.h>
+#include <botan/b64_filt.h>
+#include <botan/pipe.h>
 
 #include <boost/optional.hpp>
 

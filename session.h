@@ -1,12 +1,12 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include <botan-2/botan/p11.h>
-#include <botan-2/botan/p11_module.h>
-#include <botan-2/botan/p11_session.h>
-#include <botan-2/botan/p11_rsa.h>
-#include <botan-2/botan/p11_slot.h>
-#include <botan-2/botan/p11_object.h>
+#include <botan/p11.h>
+#include <botan/p11_module.h>
+#include <botan/p11_session.h>
+#include <botan/p11_rsa.h>
+#include <botan/p11_slot.h>
+#include <botan/p11_object.h>
 
 #include <boost/optional.hpp>
 #include <boost/filesystem.hpp>

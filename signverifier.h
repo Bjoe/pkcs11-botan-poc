@@ -3,10 +3,10 @@
 
 #include "session.h"
 
-#include <botan-2/botan/p11.h>
+#include <botan/p11.h>
 #include <boost/filesystem.hpp>
-#include <botan-2/botan/auto_rng.h>
-#include <botan-2/botan/secmem.h>
+#include <botan/auto_rng.h>
+#include <botan/secmem.h>
 
 #include <boost/filesystem.hpp>
 

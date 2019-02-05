@@ -1,7 +1,7 @@
 #include "session.h"
 
-#include <botan-2/botan/p11_slot.h>
-#include <botan-2/botan/p11_object.h>
+#include <botan/p11_slot.h>
+#include <botan/p11_object.h>
 
 #include <algorithm>
 #include <vector>

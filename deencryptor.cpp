@@ -1,9 +1,9 @@
 #include "deencryptor.h"
 
-#include <botan-2/botan/p11_rsa.h>
-#include <botan-2/botan/pubkey.h>
-#include <botan-2/botan/b64_filt.h>
-#include <botan-2/botan/pipe.h>
+#include <botan/p11_rsa.h>
+#include <botan/pubkey.h>
+#include <botan/b64_filt.h>
+#include <botan/pipe.h>
 
 namespace pkcs11 {
 
@@ -11,7 +11,6 @@ DeEncryptor::DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::se
     session_(Session::create(pkcs11Module, password, 0)),
     rng_{}
 {
-
 }
 
 void DeEncryptor::encrypt(boost::filesystem::path input, boost::filesystem::path output)
