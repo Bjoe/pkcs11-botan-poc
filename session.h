@@ -32,7 +32,7 @@ class Session
 {
 public:
   static std::unique_ptr<Session> create(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id);
-  Session(std::unique_ptr<Botan::PKCS11::Module> &&module, Botan::PKCS11::Slot slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password);
+  Session(std::unique_ptr<Botan::PKCS11::Module> &&module, Botan::PKCS11::Slot&& slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password);
 
   Session(const Session&) = delete;
   Session& operator=(const Session& other) = delete;
@@ -40,9 +40,42 @@ public:
   template<typename T>
   boost::optional<T> getKey(KeyType type, KeyPurpose purpose)
   {
-      std::vector<Botan::PKCS11::Attribute> attr = getAttributes(type, purpose);
+      std::unique_ptr<Botan::PKCS11::KeyProperties> kp;
+      switch(type)
+      {
+          case(KeyType::PUBLIC):
+          {
+              Botan::PKCS11::KeyType t = Botan::PKCS11::KeyType::Rsa;
+              std::unique_ptr<Botan::PKCS11::KeyProperties> k = std::make_unique<Botan::PKCS11::PublicKeyProperties>(t);
+              kp.swap(k);
+              break;
+          }
+          case(KeyType::PRIVATE):
+          {
+              Botan::PKCS11::KeyType t = Botan::PKCS11::KeyType::Rsa;
+              std::unique_ptr<Botan::PKCS11::KeyProperties> k = std::make_unique<Botan::PKCS11::PrivateKeyProperties>(t);
+              kp.swap(k);
+              break;
+          }
+      }
+
+      std::string keyPurpose = "undefined";
+      switch(purpose)
+      {
+      case(KeyPurpose::SIGNATURE):
+          keyPurpose = "Signature key";
+          break;
+      case(KeyPurpose::ENCRYPTION):
+          keyPurpose = "Encryption key";
+          break;
+      }
+      // search for an public key
+      kp->add_string(Botan::PKCS11::AttributeType::Label, keyPurpose);
+      //publicKeyProperties.add_numeric(Botan::PKCS11::AttributeType::Id, 2);
+
+      std::vector<Botan::PKCS11::Attribute> a = kp->attributes();
       std::vector<T> foundPublicKey =
-              Botan::PKCS11::Object::search<T>(session_, attr);
+              Botan::PKCS11::Object::search<T>(session_, a);
 
       if(foundPublicKey.empty())
       {
@@ -60,8 +93,6 @@ public:
   };
 
 private:
-  std::vector<Botan::PKCS11::Attribute> getAttributes(KeyType type, KeyPurpose purpose);
-
   std::unique_ptr<Botan::PKCS11::Module> module_;
   Botan::PKCS11::Slot slot_;
   Botan::PKCS11::Session session_;
