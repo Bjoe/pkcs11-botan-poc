@@ -18,7 +18,12 @@ void DeEncryptor::encrypt(boost::filesystem::path input, boost::filesystem::path
   boost::optional<Botan::PKCS11::PKCS11_RSA_PublicKey> pubKey = session_->getKey<Botan::PKCS11::PKCS11_RSA_PublicKey>(KeyType::PUBLIC, KeyPurpose::ENCRYPTION);
   if(pubKey)
   {
-    Botan::PK_Encryptor_EME encryptor(pubKey.get(), rng_, "EME-PKCS1-v1_5");
+    // We cannot encrypt via PKCS11 on the GPG-Smartcard. We should export the public key and import again.
+    Botan::BigInt n = pubKey->get_n();
+    Botan::BigInt e = pubKey->get_e();
+    Botan::RSA_PublicKey pub(n, e);
+
+    Botan::PK_Encryptor_EME encryptor(pub, rng_, "EME-PKCS1-v1_5");
 
     boost::filesystem::ifstream ifstream{input};
     std::string s;
@@ -45,9 +50,11 @@ void DeEncryptor::decrypt(boost::filesystem::path input, boost::filesystem::path
     boost::filesystem::ifstream ifstream{input};
     std::string s;
     ifstream >> s;
-    // TODO Base64 Decode
     std::vector<uint8_t> ciphertext{s.begin(), s.end()};
-    auto decryptText = decryptor.decrypt(ciphertext);
+    Botan::Pipe pipeIn(new Botan::Base64_Decoder);
+    pipeIn.process_msg(ciphertext);
+
+    auto decryptText = decryptor.decrypt(pipeIn.read_all());
 
     Botan::Pipe pipeOut;
     pipeOut.process_msg(decryptText);
