@@ -17,7 +17,7 @@ namespace pkcs11 {
 class SignVerifier
 {
 public:
-  SignVerifier(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password);
+  SignVerifier(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id);
 
   void sign(boost::filesystem::path input, boost::filesystem::path output);
 

@@ -413,13 +413,14 @@ int main(int argc, const char* const argv[])
                         for(Botan::PKCS11::MechanismType type : mechanisms)
                         {
                             std::cout << "MechanismType: " << static_cast<int>(type) << '\n';
-                        }
-                        // retrieve information about a particular mechanism
-                        Botan::PKCS11::MechanismInfo mech_info =
-                                slot.get_mechanism_info(Botan::PKCS11::MechanismType::RsaPkcs);
+                            Botan::PKCS11::MechanismInfo mech_info =
+                              slot.get_mechanism_info(type);
 
-                        // maximum RSA key length supported:
-                        std::cout << "Max key lenght: " << mech_info.ulMaxKeySize << '\n';
+                            // maximum RSA key length supported:
+                            std::cout << "Max key lenght: " << mech_info.ulMaxKeySize << '\n';
+                            std::cout << "Min key lenght: " << mech_info.ulMinKeySize << '\n';
+                            std::cout << "Flags : " << mech_info.flags << '\n';
+                        }
 
                         // initialize the token
                         //Botan::PKCS11::secure_string so_pin = {};
@@ -568,18 +569,20 @@ int main(int argc, const char* const argv[])
 
                                 if(programOptions->isEncrypt())
                                 {
+                                    std::cout << "Encrypt " << contentFile->string() << " to " << output->string() << '\n';
                                     deencryptor.encrypt(contentFile.get(), output.get());
                                 }
 
                                 if(programOptions->isDecrypt())
                                 {
+                                   std::cout << "Decrypt " << contentFile->string() << " to " << output->string() << '\n';
                                     deencryptor.decrypt(contentFile.get(), output.get());
                                 }
                             }
 
                             if(programOptions->isSign() || programOptions->isVerify())
                             {
-                                pkcs11::SignVerifier verifier(mp, programOptions->getPassword());
+                              pkcs11::SignVerifier verifier(mp, programOptions->getPassword(), programOptions->getSlotId());
 
                                 if(programOptions->isSign())
                                 {
@@ -590,6 +593,7 @@ int main(int argc, const char* const argv[])
                                         return -1;
                                     }
 
+                                    std::cout << "Sign " << contentFile->string() << " signature output: " << output->string() << '\n';
                                     verifier.sign(contentFile.get(), output.get());
                                 }
 
@@ -602,7 +606,15 @@ int main(int argc, const char* const argv[])
                                         return -1;
                                     }
 
-                                    verifier.verify(contentFile.get(), signatureFile.get());
+                                    std::cout << "Verify " << contentFile->string() << " with " << signatureFile->string() << '\n';
+                                    if(verifier.verify(contentFile.get(), signatureFile.get()))
+                                    {
+                                      std::cout << "Signature is OK!\n";
+                                    }
+                                    else
+                                    {
+                                      std::cout << "Signature is WRONG!\n";
+                                    }
                                 }
                             }
                         } catch(Botan::PKCS11::PKCS11_ReturnError &e)

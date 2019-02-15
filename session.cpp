@@ -27,16 +27,13 @@ std::unique_ptr<Session> Session::create(boost::filesystem::path pkcs11Module, B
 
     Botan::PKCS11::Slot slot(*module, id);
 
-    std::unique_ptr<Session> s = std::make_unique<Session>(std::move(module), std::move(slot), flags, password);
-    return s;
+    return std::make_unique<Session>(std::move(module), std::move(slot), flags, password);
 }
 
 Session::Session(std::unique_ptr<Botan::PKCS11::Module>&& module, Botan::PKCS11::Slot &&slot, Botan::PKCS11::Flags flags, Botan::PKCS11::secure_string password) :
     module_(std::move(module)), slot_(std::move(slot)), session_(slot_, false)//flags, nullptr, nullptr)
 {
-    Botan::PKCS11::SlotId id = slot.slot_id();
     session_.login( Botan::PKCS11::UserType::User, password);
-    std::cout << "Id " << id << '\n';
 }
 
 } // namespace pkcs11
