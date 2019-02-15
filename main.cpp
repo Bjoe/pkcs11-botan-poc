@@ -44,6 +44,12 @@ public:
         return pt;
     }
 
+    Botan::PKCS11::SlotId getSlotId() const
+    {
+      Botan::PKCS11::SlotId s = vm_["slot"].as<Botan::PKCS11::SlotId>();
+      return s;
+    }
+
     bool isListAllSlotsObject() const
     {
         return vm_.count("list");
@@ -127,9 +133,11 @@ public:
                 options.printHelp();
                 return std::optional<ProgramOptions>{};
             }
-            if(!options.vm_.count("module") || !options.vm_.count("password"))
+            if(!options.vm_.count("module") ||
+                !options.vm_.count("password") ||
+                (!options.vm_.count("slot") && !options.vm_.count("list")))
             {
-                std::cerr << "The required parameter --module and --password is missing:\n";
+                std::cerr << "Required parameter are missing:\n";
                 options.printHelp();
                 return std::optional<ProgramOptions>{};
             }
@@ -161,6 +169,7 @@ std::optional<ProgramOptions> parseCommandLine(int argc, const char* const argv[
     commandLineOptions.add_options()
             ("help,h", "Help message")
             ("module,m", boost::program_options::value<std::string>(), "Path to pkcs11 module")
+          ("slot,t", boost::program_options::value<Botan::PKCS11::SlotId>(), "Slot id")
             ("password,p", boost::program_options::value<std::string>(), "Password")
             ("list,l", "List Objects and slots")
             ("input,i", boost::program_options::value<std::string>(), "Content to encrypt,decrypt or sign")
@@ -555,7 +564,7 @@ int main(int argc, const char* const argv[])
                                     return -1;
                                 }
 
-                                pkcs11::DeEncryptor deencryptor(mp, programOptions->getPassword());
+                                pkcs11::DeEncryptor deencryptor(mp, programOptions->getPassword(), programOptions->getSlotId());
 
                                 if(programOptions->isEncrypt())
                                 {

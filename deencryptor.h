@@ -16,7 +16,7 @@ namespace pkcs11 {
 class DeEncryptor
 {
 public:
-    DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password);
+  DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id);
 
     void encrypt(boost::filesystem::path input, boost::filesystem::path output);
 

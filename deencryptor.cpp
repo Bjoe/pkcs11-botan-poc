@@ -4,11 +4,15 @@
 #include <botan/pubkey.h>
 #include <botan/b64_filt.h>
 #include <botan/pipe.h>
+#include <iterator>
+#include <algorithm>
+
+#include <iostream> // remove me
 
 namespace pkcs11 {
 
-DeEncryptor::DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password) :
-    session_(Session::create(pkcs11Module, password, 0)),
+DeEncryptor::DeEncryptor(boost::filesystem::path pkcs11Module, Botan::PKCS11::secure_string password, Botan::PKCS11::SlotId id) :
+    session_(Session::create(pkcs11Module, password, id)),
     rng_{}
 {
 }
@@ -26,9 +30,10 @@ void DeEncryptor::encrypt(boost::filesystem::path input, boost::filesystem::path
     Botan::PK_Encryptor_EME encryptor(pub, rng_, "EME-PKCS1-v1_5");
 
     boost::filesystem::ifstream ifstream{input};
-    std::string s;
-    ifstream >> s;
-    Botan::secure_vector<uint8_t> plaintext{s.begin(), s.end()};
+    Botan::secure_vector<uint8_t> plaintext{};
+
+    std::istreambuf_iterator<char> iter(ifstream);
+    std::copy(iter, std::istreambuf_iterator<char>(), std::back_inserter(plaintext));
 
     std::vector<uint8_t> ciphertext = encryptor.encrypt(plaintext, rng_ );
 
