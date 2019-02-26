@@ -22,5 +22,6 @@ add_executable(pbp
   session.cpp
   deencryptor.cpp
   signverifier.cpp
+  generatekey.cpp
 )
 target_link_libraries(pbp PUBLIC Boost::program_options Boost::filesystem Boost::system PkgConfig::botan-2 dl)

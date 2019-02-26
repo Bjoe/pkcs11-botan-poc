@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace pkcs11 {
 
@@ -270,6 +271,8 @@ public:
           return boost::optional<T>{};
       }
   };
+
+  void doItInsideSession(std::function<void (Botan::PKCS11::Session& session)> closure);
 
 private:
   std::unique_ptr<Botan::PKCS11::Module> module_;
