@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 include("cmake/HunterGate.cmake")
 HunterGate(
     URL "https://codeload.github.com/Bjoe/hunter/legacy.zip/b439f668499fade781a4d0fe56a0ce2976105a24"
-    SHA1 "b439f668499fade781a4d0fe56a0ce2976105a24"
+    SHA1 "f170ab3cf4b6d0a9655167ba48386ac83170a1e6"
     LOCAL
 )
 
