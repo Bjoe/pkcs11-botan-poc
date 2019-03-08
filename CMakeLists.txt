@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 include("cmake/HunterGate.cmake")
 HunterGate(
-    URL "https://codeload.github.com/Bjoe/hunter/legacy.zip/b439f668499fade781a4d0fe56a0ce2976105a24"
-    SHA1 "f170ab3cf4b6d0a9655167ba48386ac83170a1e6"
-    LOCAL
+  URL "https://codeload.github.com/Bjoe/hunter/legacy.zip/2f74dcf3f8e0dbd2cb775ea936f8874c49c6b2e9"
+  SHA1 "d0e4fd92cfc3169734784038720ee77eca2eadae"
+  LOCAL
 )
 
 project(pkcs11-botan-poc)
